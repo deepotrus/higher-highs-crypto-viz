@@ -194,7 +194,7 @@ sp.line(x_hh_map, y_hh, color='red', width = 4)
 sp.scatter(x_hh_conf_map, y_hh_conf, marker = "circle", size = 10, color = 'black',fill_color = "black")
 
 # retracement classes
-width = ( x_hh[-1] - x_hh[0] )*lf*w/1000
+width = w*( x_hh[-1] - x_hh[0] )*lf
 height_soft = 0.05*y_hh[-1]
 height_norm = 0.15*y_hh[-1] - height_soft
 height_hard = y_hh[-1] - height_norm - height_soft
