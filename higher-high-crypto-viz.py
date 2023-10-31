@@ -20,10 +20,14 @@ def get_market_data(name, pair, timeframe, market):
     
     if timeframe == '1d':
         tf_interval = Interval.in_daily
+        w = 24 * 60 * 60 * 1000 # 12 hours in milliseconds, usually half of timeframe
+        #   h    min   s    ms
     elif timeframe == '4h':
         tf_interval = Interval.in_4_hour
+        w = 4 * 60 * 60 * 1000
     elif timeframe == '5m':
         tf_interval = Interval.in_5_minute
+        w = 1 * 5 * 60 * 1000
     
     df = list()
     for el in symbs:
@@ -39,7 +43,7 @@ def get_market_data(name, pair, timeframe, market):
                 )
                 df = data.copy()
 
-    return df
+    return df, w
 
 
 def getHigherHighs(data: np.array, order, K, tau = 0):
@@ -91,11 +95,11 @@ st.write("# Higher Highs Crypto!")
 st.write("This is a basic app for visualizing crypto related data using trading view datafeed. Furthermore the app is willing to show the last higher high pattern for the desired cryptocurrency in order to check what happens fter the pattern of a Higher High occured!")
 
 name = st.text_input("Insert crypto (e.g. doge): ", "doge")
-pair = st.text_input("Insert pair exchange (or dominance if crypto is btc), e.g. (usd, usdt, .D): ", "usd")
+pair = st.text_input("Insert pair exchange (or dominance if crypto is btc), e.g. (usd, usdt, .D): ", "usdt")
 market = st.text_input("Choose market:", "BINANCE")
-timeframe = st.text_input("Choose Timeframe: (e.g. 1d, 4h, 5m)", "4d")
+timeframe = st.text_input("Choose Timeframe: (e.g. 1d, 4h, 5m)", "4h")
 
-data = get_market_data(name, pair, timeframe, market)
+data, w = get_market_data(name, pair, timeframe, market)
 
 # Plot the big timeseries
 inc = data.close > data.open
@@ -114,22 +118,19 @@ st.bokeh_chart(p, use_container_width=True)
 
 
 
-
-st.write(f"# Explore Higher High possible patterns!")
+df = data.copy()
+st.write(f"## Explore Higher High Patterns!")
 
 # PARAMETERS for SAMPLES
-lf = 3 # look forward for establishing targets
-order = 4 # order of the relative max
-tau = 12 # decorrelation time in # of candles, on time series of 4h it's 48h
+lf = st.number_input("Insert lookforward parameter (e.g. x1, x2, x3):", min_value=1, max_value=3, value=2)
+order = st.number_input('Insert order of relative max:', min_value=2, max_value=20, value=3)
+tau = st.number_input("Insert temporal distance between samples (e.g. 12 candles):", min_value=6, max_value=100, value=12)
+
 
 K = 2 # consecutive highs
 #period = 14 # period of indicators
 
-lf = st.text_input("Insert lookforward parameter (e.g. x1, x2, x3): ", "1")
-order = st.text_input("Insert max order (e.g. 2, 3, 4): ", "3")
-tau = st.text_input("Insert temporal distance between samples (e.g. 12 candles)", "12")
-
-hh = getHigherHighs(np.array(df.close), order, K, tau)
+hh = getHigherHighs(np.array(df.close), int(order), K, tau)
 hh_idx_list = [ list(samp) for samp in hh ]
 hh_idx_array = np.array(hh_idx_list)
 hh_samp = list()
@@ -145,9 +146,9 @@ for samp_idx in hh_samp:
     df_hh.append(df.iloc[samp_idx[0] : samp_idx[1]].copy()) # take df values from the start till the end
 
 st.write(f"Number of Higher High Samples: {len(df_hh)}")
-idx = st.text_input("Insert a index for the sample to visualize (e.g. 42, 89...): ", f"{len(df_hh)-1}")
+idx_sample = st.number_input("Insert a index for the sample to visualize (e.g. 42, 89...): ", min_value=0, max_value=len(df_hh)-1 , value=len(df_hh)-1)
 
-df_i_sample = df_hh[idx].copy()
+df_i_sample = df_hh[idx_sample].copy()
 # convert datetime to timestamp
 df_i_sample['datetime'] = df_i_sample.index
 df_i_sample['timestamp'] = df_i_sample.index.to_series().apply(lambda x: x.timestamp()*1000) # to milliseconds
@@ -169,7 +170,6 @@ y_hh_conf = df_i_sample.close.iloc[x_hh_conf].to_list()
 # Mapping of positions in dataframe to correct timestamp required because we set x_axis_type = datetime
 x_hh_map = [df_i_sample.index[x_hh[0]], df_i_sample.index[x_hh[-1]]]
 x_hh_conf_map = [df_i_sample.index[x_hh_conf[0]], df_i_sample.index[x_hh_conf[-1]]]
-candle_milliseconds = 14400*1000 # 4h
 
 TOOLS = "pan,wheel_zoom,box_zoom,reset,save"
 
@@ -183,19 +183,18 @@ sp.grid.grid_line_alpha = 1 # intensity of grid appearance
 
 inc = df_i_sample['close'] > df_i_sample['open']
 dec = df_i_sample['open'] > df_i_sample['close']
-w = candle_milliseconds*0.8 # width
 
 # Plotting candlesticks
 sp.segment(df_i_sample.index, df_i_sample['high'], df_i_sample.index, df_i_sample['low'], color="black")
-sp.vbar(df_i_sample.index[inc], w, df_i_sample.open[inc], df_i_sample.close[inc], fill_color="#00af50", line_color="black")
-sp.vbar(df_i_sample.index[dec], w, df_i_sample.open[dec], df_i_sample.close[dec], fill_color="#F2583E", line_color="black")
+sp.vbar(df_i_sample.index[inc], w*0.8, df_i_sample.open[inc], df_i_sample.close[inc], fill_color="#00af50", line_color="black")
+sp.vbar(df_i_sample.index[dec], w*0.8, df_i_sample.open[dec], df_i_sample.close[dec], fill_color="#F2583E", line_color="black")
 
 # Plotting pattern and confirmation markers
 sp.line(x_hh_map, y_hh, color='red', width = 4)
 sp.scatter(x_hh_conf_map, y_hh_conf, marker = "circle", size = 10, color = 'black',fill_color = "black")
 
 # retracement classes
-width = candle_milliseconds*( x_hh[-1] - x_hh[0] )*lf
+width = ( x_hh[-1] - x_hh[0] )*lf*w/1000
 height_soft = 0.05*y_hh[-1]
 height_norm = 0.15*y_hh[-1] - height_soft
 height_hard = y_hh[-1] - height_norm - height_soft
