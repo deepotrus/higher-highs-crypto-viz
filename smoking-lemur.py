@@ -120,14 +120,14 @@ def get_X_y(Xy):
 # ~~~~~~~~~~~ PLOTTING METHODS ~~~~~~~~~~~~~~~~~~#
 ##################################################
 
-def plot_big_timeseries(data, w):
+def plot_big_timeseries(data, w, name, pair):
     # Plot the big timeseries
     inc = data.close > data.open
     dec = data.open > data.close
-
+    
     TOOLS = "pan,wheel_zoom,box_zoom,reset,save"
 
-    p = figure(x_axis_type="datetime", tools=TOOLS, width=2000, title = "OHLC Chart", y_axis_type = 'log')
+    p = figure(x_axis_type="datetime", tools=TOOLS, width=2000, title = f"{name.upper()}{pair.upper()}", y_axis_type = 'log')
     p.grid.grid_line_alpha=0.9
     p.segment(data.index, data.high, data.index, data.low, color="black")
     p.vbar(data.index[inc], w, data.open[inc], data.close[inc], fill_color="#90ee90", line_color="black")
@@ -259,7 +259,7 @@ def predictions_plot(p, y_pred_proba, center):
     return p
 
 
-def plot_sample_prediction(y_pred_proba, dfi, i, order, K, lf):
+def plot_sample_prediction(y_pred_proba, dfi, i, order, K, lf, name, pair):
     # convert datetime to timestamp
     dfi['datetime'] = dfi.index
     dfi['timestamp'] = dfi.index.to_series().apply(lambda x: x.timestamp()*1000) # to milliseconds
@@ -272,7 +272,7 @@ def plot_sample_prediction(y_pred_proba, dfi, i, order, K, lf):
     TOOLS = "pan,wheel_zoom,box_zoom,reset,save"
     
     p = figure(
-        title = f"Higher High Sample - {dfi.datetime.iloc[0]} to {dfi.datetime.iloc[-1]}",
+        title = f"{name.upper()}{pair.upper()} - {dfi.datetime.iloc[0]} to {dfi.datetime.iloc[-1]}",
         x_axis_type = "datetime",
         tools = TOOLS,
         plot_width = 700
@@ -307,7 +307,7 @@ st.write("# Crypto Higher Highs Classifier")
 st.write("## by Andrei Potra feat. ~Smoking Lemur")
 st.write("This is a basic web app for visualizing crypto related data using trading view datafeed. The app is willing to show the last higher high patterns for the desired cryptocurrency in order to check what could happen. To improve the experience, a very nice and friendly lemur is willing to share with you his wisdom by smoking something i don't really know, showing you the probabilities of the price to rise, fall, or even crash... Enjoy!")
 
-name = st.text_input("Insert crypto (e.g. doge): ", "doge")
+name = st.text_input("Insert crypto (e.g. btc, eth, doge): ", "btc")
 pair = st.text_input("Insert pair exchange (or dominance if crypto is btc), e.g. (usd, usdt, .D): ", "usdt")
 market = st.text_input("Choose market:", "BINANCE")
 timeframe = st.text_input("Choose Timeframe: (e.g. 1d, 4h, 5m)", "4h")
@@ -315,7 +315,7 @@ timeframe = st.text_input("Choose Timeframe: (e.g. 1d, 4h, 5m)", "4h")
 tv = TvDatafeed()
 
 df, w = get_market_data(name, pair, timeframe, market)
-p = plot_big_timeseries(df, w)
+p = plot_big_timeseries(df, w, name, pair)
 st.bokeh_chart(p, use_container_width=True)
 
 
@@ -399,6 +399,7 @@ y_pred = model.predict(X_test)
 y_pred_proba = model.predict_proba(X_test)
 
 st.write("Here! I made it, i trained on 80 samples and we'll use the latest ones to test me >:) Go ahead and choose a number from -1 to -50, -1 means the most recent pattern i found on the market.")
-i = st.number_input("Insert a index for some of the latest samples (e.g. -1, -2, -3 ...): ", min_value=-50, max_value=-1 , value=-5)
-p = plot_sample_prediction(y_pred_proba, df_hh[i].copy(), i, order, K, lf)
+i = st.number_input("Insert a index for some of the latest samples (e.g. -1, -2, -3 ...): ", min_value=-50, max_value=-1 , value=-1)
+p = plot_sample_prediction(y_pred_proba, df_hh[i].copy(), i, order, K, lf, name, pair)
 st.bokeh_chart(p, use_container_width=True)
+st.write("My friend, remember this is not financial advice, the model is actually pretty stupid, the purpose of this project is to create web app with Streamlit simulating the offering of a simple service")
