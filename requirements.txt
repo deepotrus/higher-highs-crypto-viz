@@ -4,3 +4,4 @@ numpy
 git+https://github.com/rongardF/tvDatafeed
 bokeh==2.4.3
 scipy
+scikit-learn
