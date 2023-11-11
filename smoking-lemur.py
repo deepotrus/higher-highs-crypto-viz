@@ -145,13 +145,13 @@ def prep_plot(dfi):
     
     # setting coordinates for the segment of the pattern
     x_hh = hh_idx
-    y_hh = dfi.close.iloc[hh_idx].to_list()
+    y_hh = dfi.close.iloc[x_hh].to_list()
     
     length = x_hh[-1] - x_hh[0]
     
     x_hh_conf = [ i+order for i in hh_idx ]
     y_hh_conf = dfi.close.iloc[x_hh_conf].to_list()
-    
+
     # Mapping of positions in dataframe to correct timestamp required because we set x_axis_type = datetime
     x_hh_map = [dfi.index[x_hh[0]], dfi.index[x_hh[-1]]]
     x_hh_conf_map = [dfi.index[x_hh_conf[0]], dfi.index[x_hh_conf[-1]]]
@@ -390,8 +390,9 @@ X, y = get_X_y(Xy)
 # ~~~~~~~~~~ RANDOM FOREST ~~~~~~~~~~~~~~~~~~~~~~#
 ##################################################
 
-X_train = X[0:80]; X_test = X[80:]
-y_train = y[0:80]; y_test = y[80:]
+split_point = int(X.shape[0]*0.80)
+X_train = X[0:split_point]; X_test = X[split_point:]
+y_train = y[0:split_point]; y_test = y[split_point:]
 
 model = RandomForestClassifier(n_estimators = 20, max_depth=5, random_state=0)
 model.fit(X_train, y_train)
